@@ -25,7 +25,7 @@ class DropBoxController {
             storageBucket: "dropbox-clone-51f07.appspot.com",
             messagingSenderId: "1033376757913"
         };
-        
+
         firebase.initializeApp(config);
 
     }
@@ -41,14 +41,46 @@ class DropBoxController {
 
         this.inputFilesEl.addEventListener('change', event => {
 
+            this.btnSendFileEl.disabled = true;
+
             //Get the files from the "target" (that means, the inputFilesEl)
-            this.uploadTask(event.target.files);
+            this.uploadTask(event.target.files).then(responses => {
 
-            this.modalShow();
+                responses.forEach(resp => {
 
-            this.inputFilesEl.value = '';
+                    //Gets the uploaded file info and push to the Firebase database
+                    this.getFirebaseRef().push().set(resp.files['input-file']);
+
+                });
+
+                this.uploadComplete();
+
+            }).catch(err => {
+
+                this.uploadComplete();
+                console.error(err);
+
+            });
+
 
         });
+
+    }
+
+    uploadComplete() {
+
+        this.modalShow(false);
+
+        this.inputFilesEl.value = '';
+
+        this.btnSendFileEl.disabled = false;
+
+    }
+
+    getFirebaseRef(){
+
+        //Gets the reference for "files" in database
+        return firebase.database().ref('files');
 
     }
 
@@ -63,6 +95,8 @@ class DropBoxController {
         //Create promises to handle the uploaded files
         let promises = [];
 
+        this.modalShow();
+
         //Converts the files collection into array
         [...files].forEach( file => {
 
@@ -74,8 +108,6 @@ class DropBoxController {
                 ajax.open('POST', '/upload');
 
                 ajax.onload = event => {
-
-                    this.modalShow(false);
 
                     try {
 
@@ -97,8 +129,6 @@ class DropBoxController {
                 };
 
                 ajax.onerror = event => {
-
-                    this.modalShow(false);
 
                     reject(event);
 
