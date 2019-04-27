@@ -9,7 +9,24 @@ class DropBoxController {
         this.namefileEl = this.snackModalEl.querySelector(".filename");
         this.timeleftEl = this.snackModalEl.querySelector(".timeleft");
 
+        this.connectFirebase();
         this.initEvents();
+
+    }
+
+    connectFirebase() {
+
+        // Initialize Firebase
+        var config = {
+            apiKey: "AIzaSyClmnpT3pUFX1fVBnzwCCzrJpwofYlxpjo",
+            authDomain: "dropbox-clone-51f07.firebaseapp.com",
+            databaseURL: "https://dropbox-clone-51f07.firebaseio.com",
+            projectId: "dropbox-clone-51f07",
+            storageBucket: "dropbox-clone-51f07.appspot.com",
+            messagingSenderId: "1033376757913"
+        };
+        
+        firebase.initializeApp(config);
 
     }
 
@@ -283,7 +300,18 @@ class DropBoxController {
                             <rect id="mc-content-video-large-b" x="30" y="43" width="100" height="74" rx="4"></rect>
                             <filter x="-.5%" y="-.7%" width="101%" height="102.7%" filterUnits="objectBoundingBox" id="mc-content-video-large-a">
                                 <feOffset dy="1" in="SourceAlpha" result="shadowOffsetOuter1"></feOffset>
-                                <feColorMatrix values="0 0 0 0 0.858823529 0 0 0 0 0.870588235 0 0 0 0 0.88627451 0 0 0 1 0" in="shadowOffsetOuter1"></feColorMatrix>
+                           <script>
+    // Initialize Firebase
+    var config = {
+        apiKey: "AIzaSyClmnpT3pUFX1fVBnzwCCzrJpwofYlxpjo",
+        authDomain: "dropbox-clone-51f07.firebaseapp.com",
+        databaseURL: "https://dropbox-clone-51f07.firebaseio.com",
+        projectId: "dropbox-clone-51f07",
+        storageBucket: "dropbox-clone-51f07.appspot.com",
+        messagingSenderId: "1033376757913"
+    };
+    firebase.initializeApp(config);
+</script>     <feColorMatrix values="0 0 0 0 0.858823529 0 0 0 0 0.870588235 0 0 0 0 0.88627451 0 0 0 1 0" in="shadowOffsetOuter1"></feColorMatrix>
                             </filter>
                         </defs>
                         <g fill="none" fill-rule="evenodd">
