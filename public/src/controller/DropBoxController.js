@@ -44,7 +44,66 @@ class DropBoxController {
 
     }
 
+    removeTask() {
+
+        let promises = [];
+
+        this.getSelection().forEach( li => {
+
+            let file = JSON.parse(li.dataset.file);
+
+            let fileKey = li.dataset.key;
+
+            let formData = new FormData();
+
+            formData.append('path', file.path);
+
+            formData.append('key', fileKey);
+
+            let promise = this.ajax('/file', 'DELETE', formData);
+
+            promises.push(promise);
+            
+        });
+        
+        return Promise.all(promises);
+
+    }
+
     initEvents() {
+
+        //Delete button clicked
+        this.btnDelete.addEventListener('click', e => {
+
+            //Asks if it really does want to delete the file
+            let result = confirm("Deseja realmente deletar os arquivos selecionados?");
+
+            if (result) {
+
+                //Calls the removeTask
+                this.removeTask().then(responses => {
+
+                    //For each deleted file
+                    responses.forEach(response => {
+
+                        if (response.fields.key) {
+
+                            //Deletes from the firebase database too
+                            this.getFirebaseRef().child(response.fields.key).remove();
+
+                        }
+
+                    });
+
+                }).catch(err => {
+
+                    console.error(err);
+
+                });
+
+            }
+
+        });
 
         //Rename button clicked
         this.btnRename.addEventListener('click', e => {
@@ -109,6 +168,7 @@ class DropBoxController {
 
         });
 
+        //Event when a new file is uploaded
         this.inputFilesEl.addEventListener('change', event => {
 
             this.btnSendFileEl.disabled = true;
@@ -160,6 +220,46 @@ class DropBoxController {
 
     }
 
+    ajax(url, method = "GET", formData = new FormData(), onprogress = function(){}, onloadsstart = function(){}) {
+
+        return new Promise((resolve, reject) => {
+
+            let ajax = new XMLHttpRequest();
+
+            ajax.open(method, url);
+
+            ajax.onload = event => {
+
+                try {
+
+                    resolve(JSON.parse(ajax.responseText));
+
+                } catch (e) {
+
+                    reject(e);
+
+                }
+
+            };
+
+            //Use this property to get the ajax progress
+            ajax.upload.onprogress =  onprogress;
+
+            ajax.onerror = event => {
+
+                reject(event);
+
+            };
+
+            //Gets the time that the upload started
+            onloadsstart();
+
+            ajax.send(formData);
+
+        });  
+
+    }
+
     uploadTask(files){
 
         //Create promises to handle the uploaded files
@@ -170,52 +270,26 @@ class DropBoxController {
         //Converts the files collection into array
         [...files].forEach( file => {
 
-            //Pushes the promise to the promises array
-            promises.push(new Promise((resolve, reject) => {
+            //Lets use the formDataApi
+            let formData = new FormData();
 
-                let ajax = new XMLHttpRequest();
+            //Sends the file inside the "input-file" named parameter to the server
+            formData.append('input-file', file);
 
-                ajax.open('POST', '/upload');
+            let promise = this.ajax('/upload', 'POST', formData, () => {
 
-                ajax.onload = event => {
+                //Calls the uploadProgress to the progressbar
+                this.uploadProgress(event, file);
 
-                    try {
-
-                        resolve(JSON.parse(ajax.responseText));
-
-                    } catch (e){
-
-                        reject(e);
-
-                    }
-
-                };
-
-                //Use this property to get the ajax progress
-                ajax.upload.onprogress = event => {
-
-                    this.uploadProgress(event, file);
-
-                };
-
-                ajax.onerror = event => {
-
-                    reject(event);
-
-                };
-
-                //Lets use the formDataApi
-                let formData = new FormData();
-
-                //Sends the file inside the "input-file" named parameter to the server
-                formData.append('input-file', file);
+            }, () => {
 
                 //Gets the time that the upload started
                 this.startUploadTime = Date.now();
 
-                ajax.send(formData);
+            });    
 
-            }));
+            //Pushes the promise to the promises array
+            promises.push(promise);
 
         });
 
