@@ -200,10 +200,18 @@ class DropBoxController {
             //Get the files from the "target" (that means, the inputFilesEl)
             this.uploadTask(event.target.files).then(responses => {
 
-                responses.forEach(resp => {
+                responses.forEach(resp => { 
 
-                    //Gets the uploaded file info and push to the Firebase database
-                    this.getFirebaseRef().push().set(resp.files['input-file']);
+                    resp.ref.getDownloadURL().then(data => { 
+
+                        this.getFirebaseRef().push().set({ 
+                            name: resp.name, 
+                            type: resp.contentType,
+                            path: data, 
+                            size: resp.size 
+                        });
+
+                    }); 
 
                 });
 
@@ -297,26 +305,41 @@ class DropBoxController {
         //Converts the files collection into array
         [...files].forEach( file => {
 
-            //Lets use the formDataApi
-            let formData = new FormData();
-
-            //Sends the file inside the "input-file" named parameter to the server
-            formData.append('input-file', file);
-
-            let promise = this.ajax('/upload', 'POST', formData, () => {
-
-                //Calls the uploadProgress to the progressbar
-                this.uploadProgress(event, file);
-
-            }, () => {
-
-                //Gets the time that the upload started
-                this.startUploadTime = Date.now();
-
-            });    
-
             //Pushes the promise to the promises array
-            promises.push(promise);
+            promises.push(new Promise((resolve, reject) => {
+
+                let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name);
+
+                let task = fileRef.put(file);
+
+                task.on('state_changed', snapshot => {
+
+                    this.uploadProgress({
+                        loaded: snapshot.bytesTransferred,
+                        total: snapshot.totalBytes
+                    }, file);
+
+                }, error => {
+
+                    console.error(error);
+                    reject(error);
+
+                }, () => {
+
+                    fileRef.getMetadata().then(metadata => {
+
+                        resolve(metadata);
+
+                    }).catch( err => {
+
+                        reject(err);
+
+                    });
+
+
+                });
+
+            }));
 
         });
 
@@ -702,7 +725,7 @@ class DropBoxController {
                 default:
 
                     //Opens the file for the user
-                    window.open('/file?path=' + file.path);
+                    window.open(file.path);
 
             }
 
