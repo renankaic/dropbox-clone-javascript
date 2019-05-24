@@ -662,8 +662,6 @@ class DropBoxController {
             
         }
         
-        console.log(nav);
-
         this.navEl.innerHTML = nav.innerHTML;
 
         this.navEl.querySelectorAll('a').forEach( a => {
@@ -701,7 +699,7 @@ class DropBoxController {
 
                     break;
 
-                case 'default':
+                default:
 
                     //Opens the file for the user
                     window.open('/file?path=' + file.path);
