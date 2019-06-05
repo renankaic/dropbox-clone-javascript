@@ -51,6 +51,65 @@ class DropBoxController {
 
     }
 
+    removeFolderTask(ref, name) {
+
+        return new Promise((resolve, reject) => {
+
+            let folderRef = this.getFirebaseRef(ref + "/" + name);
+
+            folderRef.on('value', snapshot => {
+
+                folderRef.off('value');
+
+                snapshot.forEach( item => {
+
+                    let data = item.val();
+                    data.key = item.key;
+
+                    if ( data.type === 'folder' ) {
+
+                        this.removeFolderTask(ref + "/" + name, data.storageName).then( () => {
+
+                            resolve({
+                                fields: {
+                                    key: data.key
+                                }
+                            })
+
+                        }).catch( err => {
+
+                            reject(err);
+
+                        });
+
+                    } else if ( data.type ) {
+
+                        this.removeFile(ref + "/" + name, data.storageName).then(() => {
+
+                            resolve({
+                                fields: {
+                                    key: data.key
+                                }
+                            })
+
+                        }).catch(err => {
+
+                            reject(err);
+
+                        });
+
+                    }
+
+                });
+
+                folderRef.remove();
+
+            });
+
+        });
+
+    }
+
     removeTask() {
 
         let promises = [];
@@ -63,28 +122,53 @@ class DropBoxController {
 
             promises.push(new Promise( (resolve, reject) => {
 
-                debugger;
-                let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name);
+                if ( file.type === 'folder') {
 
-                fileRef.delete().then(() => {
+                    this.removeFolderTask(this.currentFolder.join('/'), file.name).then(() => {
 
-                    resolve({
-                        fields: {
-                            key
-                        }
+                        resolve({
+                            fields: {
+                                key
+                            }
+                        });
+                            
+                    }).catch( err => {
+
+
+
                     });
 
-                }).catch( err => {
+                } else if (file.type) {
 
-                    reject(err);
+                    this.removeFile(this.currentFolder.join('/'), file.storageName).then(() => {
 
-                });
+                        resolve({
+                            fields: {
+                                key
+                            }
+                        });
+
+                    }).catch( err => {
+
+
+
+                    });
+
+                }
 
             }));
             
         });
         
         return Promise.all(promises);
+
+    }
+
+    removeFile(ref, name) {
+
+        let fileRef = firebase.storage().ref(ref).child(name);
+
+        return fileRef.delete();
 
     }
 
@@ -150,10 +234,9 @@ class DropBoxController {
             let name = prompt("Renomear o arquivo:", file.name);
 
             if ( name ){
-
-                file.name = name;
-
+                              
                 //Updates the information on firebase database
+                file.name = name;
                 this.getFirebaseRef().child(li.dataset.key).set(file);
 
             }
@@ -217,6 +300,7 @@ class DropBoxController {
 
                         this.getFirebaseRef().push().set({ 
                             name: resp.name, 
+                            storageName: resp.name,
                             type: resp.contentType,
                             path: data, 
                             size: resp.size 
@@ -319,6 +403,7 @@ class DropBoxController {
             //Pushes the promise to the promises array
             promises.push(new Promise((resolve, reject) => {
 
+                //Gets the file reference
                 let fileRef = firebase.storage().ref(this.currentFolder.join('/')).child(file.name);
 
                 let task = fileRef.put(file);
